@@ -61,23 +61,26 @@ pub fn get_benchmarks() -> Vec<Benchmark> {
         reference: " Ali R. Al-Roomi (2015). Unconstrained Single-Objective Benchmark Functions Repository [https://www.al-roomi.org/benchmarks/unconstrained]. Halifax, Nova Scotia, Canada: Dalhousie University, Electrical and Computer Engineering.".to_string(),
     };
 
+    // https://www.al-roomi.org/benchmarks/unconstrained/n-dimensions/231-deb-s-function-no-01
     let deb_1_function = Benchmark {
         name: "Deb 1 Function".to_string(),
         func: Box::new(|x: &Vec<f64>| {
-            - (1f64 / x.len() as f64) * 
-                 x.iter().map(|xi| (5f64 * std::f64::consts::PI * xi).sin().powi(6)).sum::<f64>()
+            - (1f64 / x.len() as f64) 
+                * x.iter().map(|xi| (5f64 * std::f64::consts::PI * xi).sin().powi(6)).sum::<f64>()
+                + 1.0 // Add one so the minimum is zero
         }),
         xmin: -1.0,
         xmax: 1.0,
         reference: " Ali R. Al-Roomi (2015). Unconstrained Single-Objective Benchmark Functions Repository [https://www.al-roomi.org/benchmarks/unconstrained]. Halifax, Nova Scotia, Canada: Dalhousie University, Electrical and Computer Engineering.".to_string(),
     };
 
+    // https://www.al-roomi.org/benchmarks/unconstrained/n-dimensions/166-cosine-mixture-function
     let cosine_mixture_function = Benchmark {
         name: "Cosine Mixture Function".to_string(),
         func: Box::new(|x: &Vec<f64>| {
-            0.1 * x.iter().map(|xi| (5.0 * std::f64::consts::PI * xi).cos()).sum::<f64>()
+            -(0.1 * x.iter().map(|xi| (5.0 * std::f64::consts::PI * xi).cos()).sum::<f64>()
                 - x.iter().map(|xi| xi * xi).sum::<f64>()
-        }),
+)        }),
         xmin: -1.0,
         xmax: 1.0,
         reference: "M. M. Ali, C. Khompatraporn, Z. B. Zabinsky, “A Numerical Evaluation of Several Stochastic Algorithms on Selected Continuous Global Optimization Test Problems,” Journal of Global Optimization, vol. 31, pp. 635-672, 2005.".to_string(),
@@ -396,6 +399,7 @@ pub fn get_benchmarks() -> Vec<Benchmark> {
     // };
 
     vec![
+        sphere_function,
         brown_function,             
         cosine_mixture_function,    
         deb_1_function,             
@@ -416,7 +420,6 @@ pub fn get_benchmarks() -> Vec<Benchmark> {
         salomon_function,           
         schumer_steiglitz_function, 
         schwefel_1_function,
-        sphere_function,
         step_3_function,
     ]
 }
