@@ -93,7 +93,7 @@ impl Swarm {
             self.stagnant_iters.iter_mut().zip(self.cps.iter_mut()).map(|(si, cp)| {
                 if *si >= self.max_stagnent_iters {
                     *si = 0;
-                    *cp = ControlParams::generate_random_in_grid();
+                    *cp = ControlParams::generate_by_poli();
                 }
             }).collect()
         }

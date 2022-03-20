@@ -95,7 +95,7 @@ impl ControlParams {
         ControlParams { w, c1, c2 }
     }
 
-    pub fn _generate_by_poli() -> ControlParams {
+    pub fn generate_by_poli() -> ControlParams {
         let mut w;
         let mut c1;
         let mut c2;
