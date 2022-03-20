@@ -127,21 +127,38 @@ impl Swarm {
 
         self.resample_cps();
 
+        // let before = mag(&avg(&self.vels));
         // Go through the velocities, and update them
         self.vels = self.vels.iter()
             .zip(self.pbests.iter())
             .zip(self.cps.to_vec())
-            .map(|((vel, pbest), cp)| {
+            .zip(self.locs.to_vec())
+            .map(|(((vel, pbest), cp), loc)| {
                 // Update each component of the velocity
-                vel.iter()
+
+                // let before = mag(&vel);
+                let tmp = vel.iter()
                     .zip(self.gbest_loc.as_ref().unwrap())
                     .zip(pbest)
-                    .map(|((v, gbest_comp), pbest_comp)| {
-                        cp.w * v
-                            + cp.c1 * self.rng.gen_range(0f64, 1f64) * (pbest_comp - v) 
-                            + cp.c2 * self.rng.gen_range(0f64, 1f64) * (gbest_comp - v)
-                    }).collect()
+                    .zip(loc)
+                    .map(|(((v, gbest_comp), pbest_comp), x)| {
+                        let a = cp.w * v;
+                        let r1 = self.rng.gen_range(0f64, 1f64);
+                        let r2 = self.rng.gen_range(0f64, 1f64);
+                        let b = cp.c1 * r1 * (pbest_comp - x);
+                        let c = cp.c2 * r2 * (gbest_comp - x);
+                        let result = a + b + c;
+                        // println!("{:.2} = {:.2} * {:.2} + {:.2} * {:.2} * ({:.2} - {:.2}) + {:.2} * {:.2} * ({:.2} - {:.2})", 
+                        //          result,
+                        //          cp.w, x, 
+                        //          cp.c1, r1, pbest_comp, x,
+                        //          cp.c2, r2, gbest_comp, x);
+                        return result;
+                    }).collect();
+                tmp
             }).collect();
+
+        //println!("{:.2?}", mag(&avg(&self.vels)) - before);
 
         // Update the particle positions
         self.locs = self.locs.iter()
@@ -189,9 +206,6 @@ impl Swarm {
     /// Evaluate the current position of the swarm.
     /// Get metrics about swarm diversity, the distribution of the particles' solutions, the best
     /// solution, and the distance from the known best solution(s).
-    // 453,448 ns/iter (+/- 131,991) before for-loop refactor
-    // 127,529 ns/iter (+/- 39,874)  after for-loop refactor
-    // 119,068 ns/iter (+/- 40,489) after perc_oob refactor
     pub fn evaluate(&mut self, benchmark: &Benchmark, iteration: usize, verbose: bool) {
         let in_bounds: Vec<bool> = self.locs.clone().into_iter()
             // exclude locations that are OOB
@@ -201,8 +215,6 @@ impl Swarm {
         let num_oob = in_bounds.iter().map(|in_bound| if *in_bound { 0.0 } else { 1.0 }).sum::<f64>();
         let one_over_n = 1.0 / self.locs.len() as f64;
         let perc_oob = num_oob / self.locs.len() as f64;
-        let mut loc_avg = vec![0f64; self.num_dims];
-
         for (loc, within_bounds) in self.locs.iter().zip(in_bounds) {
             // Calculate the best location over all time
             if within_bounds {
@@ -220,12 +232,13 @@ impl Swarm {
                         }
                 })
             }
-            // Calculate the sum of all locations across each dimension
-            loc_avg = loc_avg.iter().zip(loc).map(|(acc, curr)|  acc + one_over_n * curr ).collect();
         }
-        let vel_avg: Vec<f64> = self.vels.clone().into_iter().reduce(|acc, curr| {
-            acc.iter().zip(curr.iter()).map(|(a, c)| a + one_over_n * c).collect()
-        }).expect("self.vels is empty").to_vec();
+
+        let loc_avg = avg(&self.locs);
+        let loc_mag = mag(&loc_avg);
+
+        let vel_avg = avg(&self.vels);
+        let vel_mag = mag(&vel_avg);
 
         let gvariance_vec = self.locs.iter().map(|loc| {
             // calculate 1/n * (x - xbar)^2
@@ -238,11 +251,11 @@ impl Swarm {
         // Square root variance to get diversity
         let gdiversity_vec: Vec<f64> = gvariance_vec.into_iter().map(|v| v.sqrt()).collect();
 
-        if verbose { println!("{}-th  one_over_n: {}, \n\tloc_avg: {:.2?}, \n\tvel_avg: {:.2?}, \n\tdiversity: {:.2?}", iteration, one_over_n, loc_avg, vel_avg, gdiversity_vec); }
-        // Magnitiude is sqrt( sum of squares )
-        let gdiversity = gdiversity_vec.iter().map(|mag| {
-            mag * mag
-        }).sum::<f64>().sqrt();
+        let gdiversity = mag(&gdiversity_vec);
+
+        if iteration < 5 { 
+            // println!("perc_oob: {:.2}, {:?}", perc_oob, loc_avg.iter().zip(vel_avg.iter()).collect::<Vec<(&f64, &f64)>>());
+        }
         
         self.evals.push(Evaluation {
             iteration,
@@ -323,6 +336,17 @@ impl Swarm {
         }
         if !verbose { pbar.finish(); }
     }
+}
+
+fn mag(vec: &Vec<f64>) -> f64 {
+    vec.iter().map(|mag| { mag * mag }).sum::<f64>().sqrt()
+}
+
+fn avg(vec: &Vec<Vec<f64>>) -> Vec<f64> {
+    let one_over_n = 1.0 / vec.len() as f64;
+    vec.clone().into_iter().reduce(|acc, curr| {
+        acc.iter().zip(curr.iter()).map(|(a, c)| (a + one_over_n * c)).collect()
+    }).expect("vec is empty").to_vec()
 }
 
 impl fmt::Display for Swarm {
