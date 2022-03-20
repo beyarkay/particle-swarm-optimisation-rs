@@ -102,7 +102,7 @@ fn find_optimal_cps(num_particles: usize, num_dimensions: usize, num_repetitions
 /// stagnation
 fn random_poli_sampling(num_particles: usize, num_dimensions: usize, num_repetitions: usize, num_iterations: usize, benchmarks: &Vec<Benchmark>) {
     let mut run_idx = 1;
-    let max_stagnent_iters_vec = vec![1, 3];
+    let max_stagnent_iters_vec = vec![1, 3, 9, 27, 81, 243];
     let cp = ControlParams::new(0.0, 0.0, 0.0);
     let num_runs = benchmarks.len() * num_repetitions * max_stagnent_iters_vec.len();
     let now = Utc::now();
