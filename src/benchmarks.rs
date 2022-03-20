@@ -247,7 +247,7 @@ pub fn get_benchmarks() -> Vec<Benchmark> {
     };
 
     let generalized_egg_crate_function = Benchmark { 
-        name: "Generalized Egg Crate".to_string(),
+        name: "Generalized Egg Crate Function".to_string(),
         func: Box::new(|x: &Vec<f64>| {
             x.iter().map(|xi| xi * xi ).sum::<f64>() 
                 + 24.0 * x.iter().map(|xi| xi.sin().powi(2)).sum::<f64>()
