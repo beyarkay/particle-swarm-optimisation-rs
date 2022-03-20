@@ -56,8 +56,8 @@ impl ControlParams {
     }
     pub fn generate_multiple_in_grid() -> Vec<ControlParams> {
         let mut cps: Vec<ControlParams> = vec![];
-        let step_size_w = 0.2;
-        let step_size_c = 0.8;
+        let step_size_w = 0.1;
+        let step_size_c = 0.4;
         let mut c = 4.0;
         let c_min = 0.0;
         let mut w = 1.0;
