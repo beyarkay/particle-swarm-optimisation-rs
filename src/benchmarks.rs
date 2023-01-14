@@ -9,7 +9,9 @@ pub struct Benchmark {
 impl Benchmark {
     /// Return true if the location is within bounds
     pub fn is_in_bounds(&self, vec: &Vec<f64>) -> Vec<bool> {
-        vec.iter().map(|x| (self.xmin).lt(&x) && (self.xmax).ge(&x)).collect()
+        vec.iter()
+            .map(|x| (self.xmin).lt(&x) && (self.xmax).ge(&x))
+            .collect()
     }
 }
 
@@ -30,27 +32,19 @@ pub fn get_benchmarks() -> Vec<Benchmark> {
         reference: "O. Begambre, J. E. Laier, “A hybrid Particle Swarm Optimization - Simplex Algorithm (PSOS) for Structural Damage Identification,” Journal of Advances in Engineering Software, vol. 40, no. 9, pp. 883-891, 2009.".to_string(),
     };
 
-    let sphere_function = Benchmark {
-        name: "Sphere Function".to_string(),
+    // https://www.al-roomi.org/benchmarks/unconstrained/n-dimensions/166-cosine-mixture-function
+    let cosine_mixture_function = Benchmark {
+        name: "Cosine Mixture Function".to_string(),
         func: Box::new(|x: &Vec<f64>| {
-            x.iter().map(|x| { x * x }).sum()
-        }),
+            -(0.1 * x.iter().map(|xi| (5.0 * std::f64::consts::PI * xi).cos()).sum::<f64>()
+                - x.iter().map(|xi| xi * xi).sum::<f64>()
+)        }),
         xmin: -1.0,
-        xmax:  1.0,
-        reference: "M. A. Schumer, K. Steiglitz, Adaptive Step Size Random Search, IEEE Transactions on Automatic Control. vol. 13, no. 3, pp. 270-276, 1968.".to_string(),
+        xmax: 1.0,
+        reference: "M. M. Ali, C. Khompatraporn, Z. B. Zabinsky, “A Numerical Evaluation of Several Stochastic Algorithms on Selected Continuous Global Optimization Test Problems,” Journal of Global Optimization, vol. 31, pp. 635-672, 2005.".to_string(),
     };
 
-    let schumer_steiglitz_function = Benchmark {
-        name: "Schumer Steiglitz Function".to_string(),
-        func: Box::new(|x: &Vec<f64>| {
-            x.iter().map(|xi| xi.powi(4)).sum()
-        }),
-        xmin: -100.0,
-        xmax: 100.0,
-        reference: " M. A. Schumer, K. Steiglitz, “Adaptive Step Size Random Search,” IEEE Transactions on Automatic Control. vol. 13, no. 3, pp. 270-276, 1968".to_string(),
-    };
-
-    let deb_3_function = Benchmark {
+    let deb_2_function = Benchmark {
         name: "Deb 3 Function".to_string(),
         func: Box::new(|x: &Vec<f64>| {
             - (1f64 / x.len() as f64) * 
@@ -74,16 +68,15 @@ pub fn get_benchmarks() -> Vec<Benchmark> {
         reference: " Ali R. Al-Roomi (2015). Unconstrained Single-Objective Benchmark Functions Repository [https://www.al-roomi.org/benchmarks/unconstrained]. Halifax, Nova Scotia, Canada: Dalhousie University, Electrical and Computer Engineering.".to_string(),
     };
 
-    // https://www.al-roomi.org/benchmarks/unconstrained/n-dimensions/166-cosine-mixture-function
-    let cosine_mixture_function = Benchmark {
-        name: "Cosine Mixture Function".to_string(),
+    // https://www.al-roomi.org/benchmarks/unconstrained/n-dimensions/168-exponential-function
+    let exponential_function = Benchmark {
+        name: "Exponential Function".to_string(),
         func: Box::new(|x: &Vec<f64>| {
-            -(0.1 * x.iter().map(|xi| (5.0 * std::f64::consts::PI * xi).cos()).sum::<f64>()
-                - x.iter().map(|xi| xi * xi).sum::<f64>()
-)        }),
+            -(-0.5 * x.iter().map(|xi| xi.powi(2)).sum::<f64>()).exp()
+        }),
         xmin: -1.0,
         xmax: 1.0,
-        reference: "M. M. Ali, C. Khompatraporn, Z. B. Zabinsky, “A Numerical Evaluation of Several Stochastic Algorithms on Selected Continuous Global Optimization Test Problems,” Journal of Global Optimization, vol. 31, pp. 635-672, 2005.".to_string(),
+        reference: "S. Rahnamyan, H. R. Tizhoosh, N. M. M. Salama, Opposition-Based Differential Evolution (ODE) with Variable Jumping Rate, IEEE Sympousim Foundations Com- putation Intelligence, Honolulu, HI, pp. 81-88, 2007.".to_string(),
     };
 
     // https://www.al-roomi.org/benchmarks/unconstrained/n-dimensions/169-generalized-griewank-s-function
@@ -97,89 +90,6 @@ pub fn get_benchmarks() -> Vec<Benchmark> {
         xmin: -100.0,
         xmax: 100.0,
         reference: "A. O. Griewank, Generalized Descent for Global Optimization, Journal of Optimization Theory and Applications, vol. 34, no. 1, pp. 11-39, 1981.".to_string(),
-    };
-
-    let qing_function = Benchmark {
-        name: "Qing Function".to_string(),
-        func: Box::new(|x: &Vec<f64>| {
-            x.iter().enumerate().map(|(i, xi)| (xi * xi - i as f64).powi(2)).sum::<f64>()
-        }),
-        xmin: -500.0,
-        xmax: 500.0,
-        reference: "A. Qing, “Dynamic Differential Evolution Strategy and Applications in Electromag- netic Inverse Scattering Problems,” IEEE Transactions on Geoscience and remote Sens- ing, vol. 44, no. 1, pp. 116-125, 2006.".to_string(),
-    };
-
-    // https://www.al-roomi.org/benchmarks/unconstrained/n-dimensions/184-salomon-s-function
-    let salomon_function = Benchmark {
-        name: "Salomon Function".to_string(),
-        func: Box::new(|x: &Vec<f64>| {
-            let sum_sq_sqrt = x.iter().map(|xi| xi * xi).sum::<f64>().sqrt();
-            1.0 - (2.0 * std::f64::consts::PI * sum_sq_sqrt).cos() 
-                + 0.1 * sum_sq_sqrt
-        }),
-        xmin: -100.0,
-        xmax: 100.0,
-        reference: "R. Salomon, Re-evaluating Genetic Algorithm Performance Under Corodinate Rota- tion of Benchmark Functions: A Survey of Some Theoretical and Practical Aspects of Genetic Algorithms, BioSystems, vol. 39, no. 3, pp. 263-278, 1996.".to_string(),
-    };
-
-    let pathological_function = Benchmark {
-        name: "Pathological Function".to_string(),
-        func: Box::new(|x: &Vec<f64>| {
-            x.iter().zip(x.iter().skip(1)).map(|(xi, xi1)| {
-                0.5 + ((100.0 * xi * xi + xi1 * xi1).sin().powi(2) - 0.5) 
-                    / (1.0 + 0.001 * (xi * xi - 2.0 * xi * xi1 + xi1 * xi1).powi(2))
-            }).sum::<f64>()
-        }),
-        xmin: -100.0,
-        xmax: 100.0,
-        reference: "S. Rahnamyan, H. R. Tizhoosh, N. M. M. Salama, A Novel Population Initialization Method for Accelerating Evolutionary Algorithms, Computers and Mathematics with Applications, vol. 53, no. 10, pp. 1605-1614, 2007.".to_string(),
-    };
-
-    let schwefel_1_function = Benchmark {
-        name: "Schwefel 1 Function".to_string(),
-        func: Box::new(|x: &Vec<f64>| {
-            let alpha = 0.5;
-            x.iter().map(|xi| xi * xi).sum::<f64>().powf(alpha)
-        }),
-        xmin: -100.0,
-        xmax: 100.0,
-        reference: "H. P. Schwefel, Numerical Optimization for Computer Models, John Wiley Sons, 1981.".to_string(),
-    };
-
-    let ripple_25_function = Benchmark {
-        name: "Ripple 25 Function".to_string(),
-        func: Box::new(|x: &Vec<f64>| {
-            x.iter().map(|xi| {
-                let exp_comp: f64 = -2.0 * 2f64.ln() * ((xi - 0.1) / 0.8).powi(2);
-                let sin_comp: f64 = (5.0 * std::f64::consts::PI * xi).sin().powi(6);
-                -(exp_comp).exp() * sin_comp
-            }).sum()
-        }),
-        xmin: 0.0,
-        xmax: 1.0,
-        reference: "Jamil, M.; Yang, X. A Literature Survey of Benchmark Functions For Global Optimization Problems. CoRR 2013, abs/1308.4008, [1308.4008]. doi:https://doi.org/10.1504/ijmmno.2013.055204.".to_string(),
-    };
-
-    // https://www.al-roomi.org/benchmarks/unconstrained/n-dimensions/168-exponential-function
-    let exponential_function = Benchmark {
-        name: "Exponential Function".to_string(),
-        func: Box::new(|x: &Vec<f64>| {
-            -(-0.5 * x.iter().map(|xi| xi.powi(2)).sum::<f64>()).exp()
-        }),
-        xmin: -1.0,
-        xmax: 1.0,
-        reference: "S. Rahnamyan, H. R. Tizhoosh, N. M. M. Salama, Opposition-Based Differential Evolution (ODE) with Variable Jumping Rate, IEEE Sympousim Foundations Com- putation Intelligence, Honolulu, HI, pp. 81-88, 2007.".to_string(),
-    };
-
-    // https://www.al-roomi.org/benchmarks/unconstrained/n-dimensions/194-step-function-no-3
-    let step_3_function = Benchmark {
-        name: "Step 3 Function".to_string(),
-        func: Box::new(|x: &Vec<f64>| {
-            x.iter().map(|xi| xi.powi(2).floor()).sum()
-        }),
-        xmin: -100.0,
-        xmax: 100.0,
-        reference: "Jamil, M.; Yang, X. A Literature Survey of Benchmark Functions For Global Optimization Problems. CoRR 2013, abs/1308.4008, [1308.4008]. doi:https://doi.org/10.1504/ijmmno.2013.055204.".to_string(),
     };
 
     let generalized_giunta_function = Benchmark {
@@ -207,34 +117,6 @@ pub fn get_benchmarks() -> Vec<Benchmark> {
         reference: "R. I. Jennrich, P. F. Sampson, Application of Stepwise Regression to Non-Linear estimation, Techometrics, vol. 10, no. 1, pp. 63-72, 1968. http://www.jstor.org/discover/10.2307/1266224?uid=3737864&uid=2129&uid=2&uid=70&uid=4&sid=2".to_string(),
     };
 
-    let mishra_7_function = Benchmark {
-        name: "Mishra 7 Function".to_string(),
-        func: Box::new(|x: &Vec<f64>| {
-            // NOTE this will likely end in `f64::INFINITY`
-            let dim_factorial: f64 = (1..x.len())
-                .reduce(|acc, curr| acc * curr)
-                .unwrap() as f64;
-            x.iter().map(|xi| {
-                xi - dim_factorial
-            }).product::<f64>().powi(2)
-        }),
-        xmin: -100.0,
-        xmax: 100.0,
-        reference: "S. K. Mishra, Global Optimization By Differential Evolution and Particle Swarm Methods: Evaluation On Some Benchmark Functions, Munich Research Papers in Economics, [Available Online]: http://mpra.ub.uni-muenchen.de/1005/".to_string(),
-    };
-
-    let mishra_1_function = Benchmark {
-        name: "Mishra 1 Function".to_string(),
-        func: Box::new(|x: &Vec<f64>| {
-            let n = x.len() as f64;
-            let x_m: f64 = n - x.iter().take(n as usize - 1).sum::<f64>();
-            (1.0 + x_m).powf(x_m)
-        }),
-        xmin: 0.0,
-        xmax: 1.0,
-        reference: "S. K. Mishra, Performance of Differential Evolution and Particle Swarm Methods on Some Relatively Harder Multi-modal Benchmark Functions, [Available Online]: http://mpra.ub.uni-muenchen.de/449/".to_string(),
-    };
-
     let generalized_price_2_function = Benchmark {
         name: "Generalized Price 2 Function".to_string(),
         func: Box::new(|x: &Vec<f64>| {
@@ -257,16 +139,43 @@ pub fn get_benchmarks() -> Vec<Benchmark> {
         reference: "Jamil, M.; Yang, X. A Literature Survey of Benchmark Functions For Global Optimization Problems. CoRR 2013, abs/1308.4008, [1308.4008]. doi:https://doi.org/10.1504/ijmmno.2013.055204.".to_string(),
     };
 
-    let rosenbrock_function = Benchmark { 
-        name: "Rosenbrock Function".to_string(),
+    let mishra_7_function = Benchmark {
+        name: "Mishra 7 Function".to_string(),
         func: Box::new(|x: &Vec<f64>| {
-            x.iter().zip(x.iter().take(x.len() - 1)).map(|(xi, xi_plus_1)| {
-                100.0 * (xi_plus_1 - xi * xi).powi(2) + (xi - 1.0).powi(2)
-            }).sum()
+            let dim_factorial: f64 = (1..x.len())
+                .reduce(|acc, curr| acc * curr)
+                .unwrap() as f64;
+            assert!(dim_factorial.is_finite());
+            (x.iter().product::<f64>() * dim_factorial).powi(2)
         }),
-        xmin: -30.0,
-        xmax: 30.0,
-        reference: "H. H. Rosenbrock, An Automatic Method for Finding the Greatest or least Value of a Function, Computer Journal, vol. 3, no. 3, pp. 175-184, 1960. [Available Online]: http://comjnl.oxfordjournals.org/content/3/3/175.full.pdf".to_string(),
+        xmin: -10.0,
+        xmax: 10.0,
+        reference: "S. K. Mishra, Global Optimization By Differential Evolution and Particle Swarm Methods: Evaluation On Some Benchmark Functions, Munich Research Papers in Economics, [Available Online]: http://mpra.ub.uni-muenchen.de/1005/".to_string(),
+    };
+
+    let mishra_1_function = Benchmark {
+        name: "Mishra 1 Function".to_string(),
+        func: Box::new(|x: &Vec<f64>| {
+            let n = x.len() as f64;
+            let x_m: f64 = n - x.iter().take(n as usize - 1).sum::<f64>();
+            (1.0 + x_m).powf(x_m)
+        }),
+        xmin: 0.0,
+        xmax: 1.0,
+        reference: "S. K. Mishra, Performance of Differential Evolution and Particle Swarm Methods on Some Relatively Harder Multi-modal Benchmark Functions, [Available Online]: http://mpra.ub.uni-muenchen.de/449/".to_string(),
+    };
+
+    let pathological_function = Benchmark {
+        name: "Pathological Function".to_string(),
+        func: Box::new(|x: &Vec<f64>| {
+            x.iter().zip(x.iter().skip(1)).map(|(xi, xi1)| {
+                0.5 + ((100.0 * xi * xi + xi1 * xi1).sin().powi(2) - 0.5) 
+                    / (1.0 + 0.001 * (xi * xi - 2.0 * xi * xi1 + xi1 * xi1).powi(2))
+            }).sum::<f64>()
+        }),
+        xmin: -100.0,
+        xmax: 100.0,
+        reference: "S. Rahnamyan, H. R. Tizhoosh, N. M. M. Salama, A Novel Population Initialization Method for Accelerating Evolutionary Algorithms, Computers and Mathematics with Applications, vol. 53, no. 10, pp. 1605-1614, 2007.".to_string(),
     };
 
     let pinter_function = Benchmark { 
@@ -299,288 +208,121 @@ pub fn get_benchmarks() -> Vec<Benchmark> {
         reference: "J. D. Pintér, Global Optimization in Action: Continuous and Lipschitz Optimization Algorithms, Implementations and Applications, Kluwer, 1996.".to_string(),
     };
 
-    // let BBOB_FID_2_IID_1_function = Benchmark { 
-    //     name: "__".to_string(),
-    //     func: Box::new(|x: &Vec<f64>| {
-    //         x.iter().map(|xi| {
-    //             xi
-    //         }).sum()
-    //     }),
-    //     xmin: -100.0, // TODO 
-    //     xmax: 100.0,  // TODO
-    //     reference: "TODO".to_string(),
-    // };
-    // let BBOB_FID_6_IID_1_function = Benchmark { 
-    //     name: "__".to_string(),
-    //     func: Box::new(|x: &Vec<f64>| {
-    //         x.iter().map(|xi| {
-    //             xi
-    //         }).sum()
-    //     }),
-    //     xmin: -100.0, // TODO 
-    //     xmax: 100.0,  // TODO
-    //     reference: "TODO".to_string(),
-    // };
-    // let BBOB_FID_16_IID_1_function = Benchmark { 
-    //     name: "__".to_string(),
-    //     func: Box::new(|x: &Vec<f64>| {
-    //         x.iter().map(|xi| {
-    //             xi
-    //         }).sum()
-    //     }),
-    //     xmin: -100.0, // TODO 
-    //     xmax: 100.0,  // TODO
-    //     reference: "TODO".to_string(),
-    // };
-    // let BBOB_FID_17_IID_2_function = Benchmark { 
-    //     name: "__".to_string(),
-    //     func: Box::new(|x: &Vec<f64>| {
-    //         x.iter().map(|xi| {
-    //             xi
-    //         }).sum()
-    //     }),
-    //     xmin: -100.0, // TODO 
-    //     xmax: 100.0,  // TODO
-    //     reference: "TODO".to_string(),
-    // };
-    // let generalized_drop_wave_function = Benchmark { 
-    //     name: "__".to_string(),
-    //     func: Box::new(|x: &Vec<f64>| {
-    //         x.iter().map(|xi| {
-    //             xi
-    //         }).sum()
-    //     }),
-    //     xmin: -100.0, // TODO 
-    //     xmax: 100.0,  // TODO
-    //     reference: "TODO".to_string(),
-    // };
-    // let bonyadi_michalewicz_function = Benchmark { 
-    //     name: "__".to_string(),
-    //     func: Box::new(|x: &Vec<f64>| {
-    //         x.iter().map(|xi| {
-    //             xi
-    //         }).sum()
-    //     }),
-    //     xmin: -100.0, // TODO 
-    //     xmax: 100.0,  // TODO
-    //     reference: "TODO".to_string(),
-    // };
-    // let discus_function = Benchmark { 
-    //     name: "__".to_string(),
-    //     func: Box::new(|x: &Vec<f64>| {
-    //         x.iter().map(|xi| {
-    //             xi
-    //         }).sum()
-    //     }),
-    //     xmin: -100.0, // TODO 
-    //     xmax: 100.0,  // TODO
-    //     reference: "TODO".to_string(),
-    // };
-    // let elliptic_function = Benchmark { 
-    //     name: "__".to_string(),
-    //     func: Box::new(|x: &Vec<f64>| {
-    //         x.iter().map(|xi| {
-    //             xi
-    //         }).sum()
-    //     }),
-    //     xmin: -100.0, // TODO 
-    //     xmax: 100.0,  // TODO
-    //     reference: "TODO".to_string(),
-    // };
-    // let needle_eye_function = Benchmark {
-    //     name: "Needle Eye Function".to_string(),
-    //     func: Box::new(|x: &Vec<f64>| {
-    //         let needle_eye = 0.0001;
-    //         x.iter().map(|xi| if xi.abs() < needle_eye { 1.0 } else { 0.0 }).sum()
-    //     }),
-    //     xmin: -100.0, // TODO 
-    //     xmax: 100.0,  // TODO
-    //     reference: "TODO".to_string(),
-    // };
+    let qing_function = Benchmark {
+        name: "Qing Function".to_string(),
+        func: Box::new(|x: &Vec<f64>| {
+            x.iter().enumerate().map(|(i, xi)| (xi * xi - i as f64).powi(2)).sum::<f64>()
+        }),
+        xmin: -500.0,
+        xmax: 500.0,
+        reference: "A. Qing, “Dynamic Differential Evolution Strategy and Applications in Electromag- netic Inverse Scattering Problems,” IEEE Transactions on Geoscience and remote Sens- ing, vol. 44, no. 1, pp. 116-125, 2006.".to_string(),
+    };
+
+    let rosenbrock_function = Benchmark { 
+        name: "Rosenbrock Function".to_string(),
+        func: Box::new(|x: &Vec<f64>| {
+            x.iter().zip(x.iter().take(x.len() - 1)).map(|(xi, xi_plus_1)| {
+                100.0 * (xi_plus_1 - xi * xi).powi(2) + (xi - 1.0).powi(2)
+            }).sum()
+        }),
+        xmin: -30.0,
+        xmax: 30.0,
+        reference: "H. H. Rosenbrock, An Automatic Method for Finding the Greatest or least Value of a Function, Computer Journal, vol. 3, no. 3, pp. 175-184, 1960. [Available Online]: http://comjnl.oxfordjournals.org/content/3/3/175.full.pdf".to_string(),
+    };
+
+    let ripple_25_function = Benchmark {
+        name: "Ripple 25 Function".to_string(),
+        func: Box::new(|x: &Vec<f64>| {
+            x.iter().map(|xi| {
+                let exp_comp: f64 = -2.0 * 2f64.ln() * ((xi - 0.1) / 0.8).powi(2);
+                let sin_comp: f64 = (5.0 * std::f64::consts::PI * xi).sin().powi(6);
+                -(exp_comp).exp() * sin_comp
+            }).sum()
+        }),
+        xmin: 0.0,
+        xmax: 1.0,
+        reference: "Jamil, M.; Yang, X. A Literature Survey of Benchmark Functions For Global Optimization Problems. CoRR 2013, abs/1308.4008, [1308.4008]. doi:https://doi.org/10.1504/ijmmno.2013.055204.".to_string(),
+    };
+
+    let sphere_function = Benchmark {
+        name: "Sphere Function".to_string(),
+        func: Box::new(|x: &Vec<f64>| {
+            x.iter().map(|x| { x * x }).sum()
+        }),
+        xmin: -1.0,
+        xmax:  1.0,
+        reference: "M. A. Schumer, K. Steiglitz, Adaptive Step Size Random Search, IEEE Transactions on Automatic Control. vol. 13, no. 3, pp. 270-276, 1968.".to_string(),
+    };
+
+    let schumer_steiglitz_function = Benchmark {
+        name: "Schumer Steiglitz Function".to_string(),
+        func: Box::new(|x: &Vec<f64>| {
+            x.iter().map(|xi| xi.powi(4)).sum()
+        }),
+        xmin: -100.0,
+        xmax: 100.0,
+        reference: " M. A. Schumer, K. Steiglitz, “Adaptive Step Size Random Search,” IEEE Transactions on Automatic Control. vol. 13, no. 3, pp. 270-276, 1968".to_string(),
+    };
+
+    // https://www.al-roomi.org/benchmarks/unconstrained/n-dimensions/184-salomon-s-function
+    let salomon_function = Benchmark {
+        name: "Salomon Function".to_string(),
+        func: Box::new(|x: &Vec<f64>| {
+            let sum_sq_sqrt = x.iter().map(|xi| xi * xi).sum::<f64>().sqrt();
+            1.0 - (2.0 * std::f64::consts::PI * sum_sq_sqrt).cos() 
+                + 0.1 * sum_sq_sqrt
+        }),
+        xmin: -100.0,
+        xmax: 100.0,
+        reference: "R. Salomon, Re-evaluating Genetic Algorithm Performance Under Corodinate Rota- tion of Benchmark Functions: A Survey of Some Theoretical and Practical Aspects of Genetic Algorithms, BioSystems, vol. 39, no. 3, pp. 263-278, 1996.".to_string(),
+    };
+
+    let schwefel_1_function = Benchmark {
+        name: "Schwefel 1 Function".to_string(),
+        func: Box::new(|x: &Vec<f64>| {
+            let alpha = 0.5;
+            x.iter().map(|xi| xi * xi).sum::<f64>().powf(alpha)
+        }),
+        xmin: -100.0,
+        xmax: 100.0,
+        reference:
+            "H. P. Schwefel, Numerical Optimization for Computer Models, John Wiley Sons, 1981."
+                .to_string(),
+    };
+
+    // https://www.al-roomi.org/benchmarks/unconstrained/n-dimensions/194-step-function-no-3
+    let step_3_function = Benchmark {
+        name: "Step 3 Function".to_string(),
+        func: Box::new(|x: &Vec<f64>| {
+            x.iter().map(|xi| xi.powi(2).floor()).sum()
+        }),
+        xmin: -100.0,
+        xmax: 100.0,
+        reference: "Jamil, M.; Yang, X. A Literature Survey of Benchmark Functions For Global Optimization Problems. CoRR 2013, abs/1308.4008, [1308.4008]. doi:https://doi.org/10.1504/ijmmno.2013.055204.".to_string(),
+    };
 
     vec![
-        sphere_function,
-        brown_function,             
-        cosine_mixture_function,    
-        deb_1_function,             
-        // deb_3_function,             
+        deb_2_function,
+        generalized_paviani_function,
+        generalized_price_2_function,
+        mishra_1_function,
+        // brown_function,
+        cosine_mixture_function,
+        deb_1_function,
         exponential_function,
         generalized_egg_crate_function,
         generalized_giunta_function,
-        // generalized_paviani_function,
-        // generalized_price_2_function,
         griewank_function,
-        mishra_1_function,
         // mishra_7_function,
         pathological_function,
         pinter_function,
-        qing_function,              
+        qing_function,
         ripple_25_function,
         rosenbrock_function,
-        salomon_function,           
-        schumer_steiglitz_function, 
+        salomon_function,
+        schumer_steiglitz_function,
         schwefel_1_function,
+        sphere_function,
         step_3_function,
     ]
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use test::Bencher;
-    use rand::thread_rng;
-    use rand::Rng;
-
-    // brown_function,
-    #[bench]
-    fn bench_brown_function(b: &mut Bencher) {
-        let fn_name =  "Brown Function";
-        let benchmarks = get_benchmarks();
-        let bm = benchmarks.iter()
-            .filter(|b| b.name == fn_name)
-            .nth(0)
-            .expect(format!("Function {} doesn't exist", fn_name).as_str());
-        let num_dims = 30;
-        let mut rng = thread_rng();
-        let loc = (0..num_dims).into_iter().map(|_| { rng.gen_range(-1f64, 1f64) }).collect();
-
-        b.iter(|| (bm.func)(&loc));
-    }
-    // sphere_function,
-    #[bench]
-    fn bench_sphere_function(b: &mut Bencher) {
-        let fn_name =  "Sphere Function";
-        let benchmarks = get_benchmarks();
-        let bm = benchmarks.iter()
-            .filter(|b| b.name == fn_name)
-            .nth(0)
-            .expect(format!("Function {} doesn't exist", fn_name).as_str());
-        let num_dims = 30;
-        let mut rng = thread_rng();
-        let loc = (0..num_dims).into_iter().map(|_| { rng.gen_range(-1f64, 1f64) }).collect();
-
-        b.iter(|| (bm.func)(&loc));
-    }
-    // schumer_steiglitz_function,
-    #[bench]
-    fn bench_schumer_steiglitz_function(b: &mut Bencher) {
-        let fn_name =  "Schumer Steiglitz Function";
-        let benchmarks = get_benchmarks();
-        let bm = benchmarks.iter()
-            .filter(|b| b.name == fn_name)
-            .nth(0)
-            .expect(format!("Function {} doesn't exist", fn_name).as_str());
-        let num_dims = 30;
-        let mut rng = thread_rng();
-        let loc = (0..num_dims).into_iter().map(|_| { rng.gen_range(-1f64, 1f64) }).collect();
-
-        b.iter(|| (bm.func)(&loc));
-    }
-    // deb_3_function,
-    #[bench]
-    fn bench_deb_3_function(b: &mut Bencher) {
-        let fn_name =  "Deb 3 Function";
-        let benchmarks = get_benchmarks();
-        let bm = benchmarks.iter()
-            .filter(|b| b.name == fn_name)
-            .nth(0)
-            .expect(format!("Function {} doesn't exist", fn_name).as_str());
-        let num_dims = 30;
-        let mut rng = thread_rng();
-        let loc = (0..num_dims).into_iter().map(|_| { rng.gen_range(-1f64, 1f64) }).collect();
-
-        b.iter(|| (bm.func)(&loc));
-    }
-    // deb_1_function,
-    #[bench]
-    fn bench_deb_1_function(b: &mut Bencher) {
-        let fn_name =  "Deb 1 Function";
-        let benchmarks = get_benchmarks();
-        let bm = benchmarks.iter()
-            .filter(|b| b.name == fn_name)
-            .nth(0)
-            .expect(format!("Function {} doesn't exist", fn_name).as_str());
-        let num_dims = 30;
-        let mut rng = thread_rng();
-        let loc = (0..num_dims).into_iter().map(|_| { rng.gen_range(-1f64, 1f64) }).collect();
-
-        b.iter(|| (bm.func)(&loc));
-    }
-    // cosine_mixture_function,
-    #[bench]
-    fn bench_cosine_mixture_function(b: &mut Bencher) {
-        let fn_name =  "Cosine Mixture Function";
-        let benchmarks = get_benchmarks();
-        let bm = benchmarks.iter()
-            .filter(|b| b.name == fn_name)
-            .nth(0)
-            .expect(format!("Function {} doesn't exist", fn_name).as_str());
-        let num_dims = 30;
-        let mut rng = thread_rng();
-        let loc = (0..num_dims).into_iter().map(|_| { rng.gen_range(-1f64, 1f64) }).collect();
-
-        b.iter(|| (bm.func)(&loc));
-    }
-
-    //griewank_function
-    #[bench]
-    fn bench_griewank_function(b: &mut Bencher) {
-        let fn_name =  "Griewank Function";
-        let benchmarks = get_benchmarks();
-        let bm = benchmarks.iter()
-            .filter(|b| b.name == fn_name)
-            .nth(0)
-            .expect(format!("Function {} doesn't exist", fn_name).as_str());
-        let num_dims = 30;
-        let mut rng = thread_rng();
-        let loc = (0..num_dims).into_iter().map(|_| { rng.gen_range(-1f64, 1f64) }).collect();
-
-        b.iter(|| (bm.func)(&loc));
-    }
-    // qing_function
-    #[bench]
-    fn bench_qing_function(b: &mut Bencher) {
-        let fn_name =  "Qing Function";
-        let benchmarks = get_benchmarks();
-        let bm = benchmarks.iter()
-            .filter(|b| b.name == fn_name)
-            .nth(0)
-            .expect(format!("Function {} doesn't exist", fn_name).as_str());
-        let num_dims = 30;
-        let mut rng = thread_rng();
-        let loc = (0..num_dims).into_iter().map(|_| { rng.gen_range(-1f64, 1f64) }).collect();
-
-        b.iter(|| (bm.func)(&loc));
-    }
-    // salomon_function
-    #[bench]
-    fn bench_salomon_function(b: &mut Bencher) {
-        let fn_name =  "Salomon Function";
-        let benchmarks = get_benchmarks();
-        let bm = benchmarks.iter()
-            .filter(|b| b.name == fn_name)
-            .nth(0)
-            .expect(format!("Function {} doesn't exist", fn_name).as_str());
-        let num_dims = 30;
-        let mut rng = thread_rng();
-        let loc = (0..num_dims).into_iter().map(|_| { rng.gen_range(-1f64, 1f64) }).collect();
-
-        b.iter(|| (bm.func)(&loc));
-    }
-    // pathological_function
-    #[bench]
-    fn bench_pathological_function(b: &mut Bencher) {
-        let fn_name =  "Pathological Function";
-        let benchmarks = get_benchmarks();
-        let bm = benchmarks.iter()
-            .filter(|b| b.name == fn_name)
-            .nth(0)
-            .expect(format!("Function {} doesn't exist", fn_name).as_str());
-        let num_dims = 30;
-        let mut rng = thread_rng();
-        let loc = (0..num_dims).into_iter().map(|_| { rng.gen_range(-1f64, 1f64) }).collect();
-
-        b.iter(|| (bm.func)(&loc));
-    }
-}
-

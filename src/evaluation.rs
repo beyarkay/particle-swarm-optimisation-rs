@@ -20,6 +20,10 @@ pub struct Evaluation {
 }
 impl Display for Evaluation {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "perc_oob:{:.4}, gbest_fit:{:.4e}, gdiversity:{:.4e}", self.perc_oob, self.gbest_fit, self.gdiversity)
+        write!(
+            f,
+            "perc_oob:{:.4}, gbest_fit:{:.4e}, gdiversity:{:.4e}",
+            self.perc_oob, self.gbest_fit, self.gdiversity
+        )
     }
 }
