@@ -1,5 +1,5 @@
 pub struct Benchmark {
-    pub func: Box<dyn Fn(&Vec<f64>) -> f64>,
+    pub func: Box<dyn Fn(&Vec<f64>) -> f64 + Send + Sync>,
     pub name: String,
     pub xmin: f64,
     pub xmax: f64,
@@ -17,14 +17,14 @@ impl Benchmark {
 
 // TODO Build out ALL the benchmarks
 pub fn get_benchmarks() -> Vec<Benchmark> {
-    let brown_function = Benchmark {
+    let _brown_function = Benchmark {
         name: "Brown Function".to_string(),
         func: Box::new(|x: &Vec<f64>| {
             x.iter()
                 .zip(x.iter().skip(1))
                 .map(|(x1, x2)| {
-                    (x1 * x1).powf(x2 * x2 + 1f64) 
-                        + (x2 * x2).powf(x1 * x1 + 1f64) 
+                    (x1 * x1).powf(x2 * x2 + 1f64)
+                        + (x2 * x2).powf(x1 * x1 + 1f64)
                 }).sum()
         }),
         xmin: -1.0,
@@ -47,7 +47,7 @@ pub fn get_benchmarks() -> Vec<Benchmark> {
     let deb_2_function = Benchmark {
         name: "Deb 3 Function".to_string(),
         func: Box::new(|x: &Vec<f64>| {
-            - (1f64 / x.len() as f64) * 
+            - (1f64 / x.len() as f64) *
                  x.iter().map(|xi| (5f64 * std::f64::consts::PI * (xi.powf(0.75f64) - 0.05f64)).sin().powi(6)).sum::<f64>()
         }),
         xmin: -1.0,
@@ -59,7 +59,7 @@ pub fn get_benchmarks() -> Vec<Benchmark> {
     let deb_1_function = Benchmark {
         name: "Deb 1 Function".to_string(),
         func: Box::new(|x: &Vec<f64>| {
-            - (1f64 / x.len() as f64) 
+            - (1f64 / x.len() as f64)
                 * x.iter().map(|xi| (5f64 * std::f64::consts::PI * xi).sin().powi(6)).sum::<f64>()
                 + 1.0 // Add one so the minimum is zero
         }),
@@ -83,7 +83,7 @@ pub fn get_benchmarks() -> Vec<Benchmark> {
     let griewank_function = Benchmark {
         name: "Griewank Function".to_string(),
         func: Box::new(|x: &Vec<f64>| {
-            x.iter().map(|xi| (xi * xi) / 4000.0).sum::<f64>() 
+            x.iter().map(|xi| (xi * xi) / 4000.0).sum::<f64>()
                 - x.iter().enumerate().map(|(i, xi)| (xi / (1.0 + i as f64).sqrt()).cos()).product::<f64>()
                 + 1.0
         }),
@@ -123,15 +123,15 @@ pub fn get_benchmarks() -> Vec<Benchmark> {
             1.0 + x.iter().map(|xi| xi.sin().powi(2)).sum::<f64>()
                 - 0.1 * (x.iter().map(|xi| xi * xi).sum::<f64>()).exp()
         }),
-        xmin: -10.0, // TODO 
+        xmin: -10.0, // TODO
         xmax: 10.0,  // TODO
         reference: "W. L. Price, A Controlled Random Search Procedure for Global Optimisa- tion, Computer journal, vol. 20, no. 4, pp. 367-370, 1977. [Available Online]: http://comjnl.oxfordjournals.org/content/20/4/367.full.pdf".to_string(),
     };
 
-    let generalized_egg_crate_function = Benchmark { 
+    let generalized_egg_crate_function = Benchmark {
         name: "Generalized Egg Crate Function".to_string(),
         func: Box::new(|x: &Vec<f64>| {
-            x.iter().map(|xi| xi * xi ).sum::<f64>() 
+            x.iter().map(|xi| xi * xi ).sum::<f64>()
                 + 24.0 * x.iter().map(|xi| xi.sin().powi(2)).sum::<f64>()
         }),
         xmin: -5.0,
@@ -139,7 +139,7 @@ pub fn get_benchmarks() -> Vec<Benchmark> {
         reference: "Jamil, M.; Yang, X. A Literature Survey of Benchmark Functions For Global Optimization Problems. CoRR 2013, abs/1308.4008, [1308.4008]. doi:https://doi.org/10.1504/ijmmno.2013.055204.".to_string(),
     };
 
-    let mishra_7_function = Benchmark {
+    let _mishra_7_function = Benchmark {
         name: "Mishra 7 Function".to_string(),
         func: Box::new(|x: &Vec<f64>| {
             let dim_factorial: f64 = (1..x.len())
@@ -169,7 +169,7 @@ pub fn get_benchmarks() -> Vec<Benchmark> {
         name: "Pathological Function".to_string(),
         func: Box::new(|x: &Vec<f64>| {
             x.iter().zip(x.iter().skip(1)).map(|(xi, xi1)| {
-                0.5 + ((100.0 * xi * xi + xi1 * xi1).sin().powi(2) - 0.5) 
+                0.5 + ((100.0 * xi * xi + xi1 * xi1).sin().powi(2) - 0.5)
                     / (1.0 + 0.001 * (xi * xi - 2.0 * xi * xi1 + xi1 * xi1).powi(2))
             }).sum::<f64>()
         }),
@@ -178,7 +178,7 @@ pub fn get_benchmarks() -> Vec<Benchmark> {
         reference: "S. Rahnamyan, H. R. Tizhoosh, N. M. M. Salama, A Novel Population Initialization Method for Accelerating Evolutionary Algorithms, Computers and Mathematics with Applications, vol. 53, no. 10, pp. 1605-1614, 2007.".to_string(),
     };
 
-    let pinter_function = Benchmark { 
+    let pinter_function = Benchmark {
         name: "Pinter Function".to_string(),
         func: Box::new(|x: &Vec<f64>| {
             let tri_x_iterator = x.iter()
@@ -194,10 +194,10 @@ pub fn get_benchmarks() -> Vec<Benchmark> {
                     xi_less_1 * xi.sin() + xi_plus_1.sin()
                 }).sum::<f64>();
             let b = tri_x_iterator.map(|(((_i, xi), xi_plus_1), xi_less_1)| {
-                    xi_less_1.powi(2) 
-                        - 2.0 * xi 
-                        + 3.0 * xi_plus_1 
-                        - xi.cos() 
+                    xi_less_1.powi(2)
+                        - 2.0 * xi
+                        + 3.0 * xi_plus_1
+                        - xi.cos()
                         + 1.0
                 }).sum::<f64>();
 
@@ -218,7 +218,7 @@ pub fn get_benchmarks() -> Vec<Benchmark> {
         reference: "A. Qing, “Dynamic Differential Evolution Strategy and Applications in Electromag- netic Inverse Scattering Problems,” IEEE Transactions on Geoscience and remote Sens- ing, vol. 44, no. 1, pp. 116-125, 2006.".to_string(),
     };
 
-    let rosenbrock_function = Benchmark { 
+    let rosenbrock_function = Benchmark {
         name: "Rosenbrock Function".to_string(),
         func: Box::new(|x: &Vec<f64>| {
             x.iter().zip(x.iter().take(x.len() - 1)).map(|(xi, xi_plus_1)| {
@@ -269,7 +269,7 @@ pub fn get_benchmarks() -> Vec<Benchmark> {
         name: "Salomon Function".to_string(),
         func: Box::new(|x: &Vec<f64>| {
             let sum_sq_sqrt = x.iter().map(|xi| xi * xi).sum::<f64>().sqrt();
-            1.0 - (2.0 * std::f64::consts::PI * sum_sq_sqrt).cos() 
+            1.0 - (2.0 * std::f64::consts::PI * sum_sq_sqrt).cos()
                 + 0.1 * sum_sq_sqrt
         }),
         xmin: -100.0,

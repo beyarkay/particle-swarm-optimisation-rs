@@ -8,5 +8,6 @@ edition = "2021"
 [dependencies]
 rand = "0.7.3"
 textplots = "0.8"
-indicatif = "0.16.2"
+indicatif = {version = "0.16.2", features = ["rayon"]}
 chrono = "0.4"
+rayon = "1.6.1"

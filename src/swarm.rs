@@ -1,11 +1,10 @@
-use crate::Strategy;
 use crate::benchmarks::Benchmark;
 use crate::evaluation::Evaluation;
 use crate::ControlParams;
 use crate::PositionRepair;
+use crate::Strategy;
 use core::fmt;
 
-use rand::prelude::ThreadRng;
 use rand::thread_rng;
 use rand::Rng;
 use std::cmp::min_by;
@@ -14,6 +13,7 @@ use std::fs::OpenOptions;
 use std::io::prelude::*;
 use std::io::BufWriter;
 use std::path::Path;
+use std::thread;
 
 #[derive(Debug)]
 pub struct Swarm {
@@ -28,8 +28,6 @@ pub struct Swarm {
     /// The personal best locations of each particle in the swarm.
     pbests: Vec<Vec<f64>>,
     num_neighs: usize,
-    /// The random number generator used by the swarm to initialise.
-    rng: ThreadRng,
     /// The global best location that the swarm has found.
     gbest_loc: Option<Vec<f64>>,
     /// The evaluations of the swarm every
@@ -81,19 +79,15 @@ impl Swarm {
             })
             .collect();
         let cps: Vec<ControlParams> = match strat {
-            Strategy::EmpiricallyTuned(val) => {
-                (0..num_particles)
-                    .into_iter()
-                    .map(|_| ControlParams::generate_for_et_pso(val))
-                    .collect()
-            },
-            Strategy::RandomAccelerationCoefficients => {
-                (0..num_particles)
-                    .into_iter()
-                    .map(|_| ControlParams::generate_by_poli())
-                    .collect()
-            },
-            Strategy::None => vec![cp.clone(); num_particles]
+            Strategy::EmpiricallyTuned(val) => (0..num_particles)
+                .into_iter()
+                .map(|_| ControlParams::generate_for_et_pso(val))
+                .collect(),
+            Strategy::RandomAccelerationCoefficients => (0..num_particles)
+                .into_iter()
+                .map(|_| ControlParams::generate_by_poli())
+                .collect(),
+            Strategy::None => vec![cp.clone(); num_particles],
         };
         let max_stagnent_iters = match strat {
             Strategy::EmpiricallyTuned(_) => 1,
@@ -108,7 +102,6 @@ impl Swarm {
             vels,
             pbests: locs,
             num_neighs: num_particles - 1,
-            rng,
             gbest_loc: None,
             evals: vec![],
             pos_rep: PositionRepair::Random,
@@ -211,9 +204,10 @@ impl Swarm {
                     .zip(pbest)
                     .zip(loc)
                     .map(|(((v, gbest_comp), pbest_comp), x)| {
+                        let mut rng = thread_rng();
                         let a = cp.w * v;
-                        let r1 = self.rng.gen_range(0f64, 1f64);
-                        let r2 = self.rng.gen_range(0f64, 1f64);
+                        let r1 = rng.gen_range(0f64, 1f64);
+                        let r2 = rng.gen_range(0f64, 1f64);
                         let b = cp.c1 * r1 * (pbest_comp - x);
                         let c = cp.c2 * r2 * (gbest_comp - x);
                         let result = a + b + c;
@@ -270,7 +264,8 @@ impl Swarm {
                                     if *b {
                                         l
                                     } else {
-                                        self.rng.gen_range(benchmark.xmin, benchmark.xmax)
+                                        let mut rng = thread_rng();
+                                        rng.gen_range(benchmark.xmin, benchmark.xmax)
                                     }
                                 })
                                 .collect()
@@ -371,23 +366,39 @@ impl Swarm {
         });
     }
 
+    /// Log the swarm's progress to file.
+    /// This logs the following parameters as a CSV line to disk (all floats are rounded to 4dp):
+    /// - Number of dimensions
+    /// - Number of particles
+    /// - The maximum number of stagnant iterations
+    /// - dist
+    /// - $w$
+    /// - $c_1$
+    /// - $c_1$
+    /// - The name of the benchmark
+    /// - the repetition number
+    /// - the iteration number
+    /// - the global best fitness
+    /// - the current best fitness
+    /// - the swarm's diversity
+    /// - The percentage of particles out of bounds
+    /// - The strategy (EmpiricallyTuned or RandomAccelerationCoefficients)
     pub fn log_to(
         &self,
         path: &str,
-        benchmark: &Benchmark,
+        benchmark_name: &str,
         rep_num: usize,
         dist: f64,
         max_stagnent_iters: usize,
     ) {
         let mut file;
-        if !Path::new(path).exists() {
-            // If the file doesn't exist, create it and write the csv header line
-            file = OpenOptions::new()
-                .create_new(true)
-                .write(true)
-                .append(true)
-                .open(path)
-                .expect("Failed to create new file");
+        let mut file_result = OpenOptions::new()
+            .create_new(true)
+            .write(true)
+            .append(true)
+            .open(path);
+        if let Ok(f) = file_result {
+            file = f;
             writeln!(file, "num_dims,num_particles,max_stagnent_iters,dist,w,c1,c2,benchmark,rep_num,iter_num,gbest_fit,curr_gbest_fit,gdiversity,perc_oob,strat")
                 .expect("Write to file failed");
         } else {
@@ -396,6 +407,7 @@ impl Swarm {
                 .open(path)
                 .expect("Couldn't open file for appending");
         }
+
         let mut file = BufWriter::new(file);
 
         for eval in self.evals.iter() {
@@ -410,7 +422,7 @@ impl Swarm {
                 self.w.unwrap_or(f64::NAN),
                 self.c1.unwrap_or(f64::NAN),
                 self.c2.unwrap_or(f64::NAN),
-                benchmark.name,
+                benchmark_name,
                 rep_num,
                 eval.iteration,
                 // Response variables

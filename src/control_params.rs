@@ -1,5 +1,5 @@
-use crate::Strategy;
 use crate::rand::Rng;
+
 use rand::prelude::*;
 use rand::thread_rng;
 
@@ -64,6 +64,11 @@ impl ControlParams {
         let c = step_size * rng.gen_range(0, (c_max / step_size) as usize + 1) as f64;
         return ControlParams::new(w, c, c);
     }
+
+    /// generate all control parameters with w in [-1.1, 1.1] and c in [0, 5]
+    /// The result is ordered. Specifically, the values are:
+    /// - w \in [-1.1, -1.0, ..., 1.0, 1.1]
+    /// - c=c1+c2 \in [0.0, 0.1, ..., 4.9, 5.0]
     pub fn generate_multiple_in_grid() -> Vec<ControlParams> {
         let mut cps: Vec<ControlParams> = vec![];
         let step_size_w = 0.1;
