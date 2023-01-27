@@ -1,10 +1,10 @@
 use crate::benchmarks::Benchmark;
-use rand::prelude::*;
 use crate::evaluation::Evaluation;
 use crate::ControlParams;
 use crate::PositionRepair;
 use crate::Strategy;
 use core::fmt;
+use rand::prelude::*;
 
 use rand::thread_rng;
 use rand::Rng;
@@ -79,12 +79,13 @@ impl Swarm {
         let cps: Vec<ControlParams> = match strat {
             Strategy::EmpiricallyTuned(_val) => (0..num_particles)
                 .into_iter()
-                .map(|_|  {
+                .map(|_| {
                     cp_probs
                         .choose_weighted(&mut rng, |opt| opt.1)
                         .expect("No options given")
                         .0
-                }).collect(),
+                })
+                .collect(),
             Strategy::RandomAccelerationCoefficients => (0..num_particles)
                 .into_iter()
                 .map(|_| ControlParams::generate_by_poli())
@@ -142,7 +143,13 @@ impl Swarm {
         }
     }
 
-    pub fn step(&mut self, benchmark: &Benchmark, iteration: usize, cp_probs: &Option<Vec<(ControlParams, f64)>>, verbose: bool) {
+    pub fn step(
+        &mut self,
+        benchmark: &Benchmark,
+        iteration: usize,
+        cp_probs: &Option<Vec<(ControlParams, f64)>>,
+        verbose: bool,
+    ) {
         // Go through the pbests, and update them if needed
         let prev_pbests = self.pbests.clone();
         self.pbests = self
@@ -447,7 +454,13 @@ impl Swarm {
         file.flush().expect("Failed to flush the BufWriter");
     }
 
-    pub fn solve(&mut self, benchmark: &Benchmark, num_iterations: i32, cp_probs: Option<Vec<(ControlParams, f64)>>, verbose: bool) {
+    pub fn solve(
+        &mut self,
+        benchmark: &Benchmark,
+        num_iterations: i32,
+        cp_probs: Option<Vec<(ControlParams, f64)>>,
+        verbose: bool,
+    ) {
         // let pbar = ProgressBar::new(num_iterations as u64);
         // if !verbose {
         //     pbar.set_style(ProgressStyle::default_bar()

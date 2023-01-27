@@ -5,15 +5,15 @@ mod control_params;
 mod evaluation;
 mod swarm;
 extern crate rand;
-use rayon::prelude::*;
 use crate::benchmarks::Benchmark;
 use crate::control_params::ControlParams;
 use crate::swarm::Swarm;
-use chrono::{Datelike, Utc};
 use chrono;
-use indicatif::{ProgressBar, ProgressStyle};
+use chrono::{Datelike, Utc};
 use indicatif::ParallelProgressIterator;
+use indicatif::{ProgressBar, ProgressStyle};
 use rand::{prelude::SliceRandom, thread_rng};
+use rayon::prelude::*;
 use std::thread;
 
 fn main() {
@@ -80,37 +80,56 @@ fn train_bm_etpso(
     benchmarks: &Vec<Benchmark>,
 ) {
     let num_runs = num_repetitions * benchmarks.len() * benchmarks.len();
-    let pbar = ProgressBar::new(num_runs as u64);
-    pbar.set_style(ProgressStyle::default_bar()
-                    .template("[-{eta} +{elapsed} {prefix}] {bar:40.cyan/blue} {pos:>7}/{len:7} ({per_sec}) {msg}")
-                    .progress_chars("=>~"));
+    let mut pbar_progress = 0;
     for rep_num in 0..num_repetitions {
         for (b_idx, init_bm) in benchmarks.iter().enumerate() {
-            let filename = format!("data/init-{}.csv", init_bm.name);
             // Get the control parameters for this benchmark
             let cp_probs = ControlParams::generate_from_data("data/last_iter.csv", init_bm);
-            for (e_idx, eval_bm) in benchmarks.iter().enumerate() {
-                pbar.set_prefix(format!("[{rep_num}/{num_repetitions}] [{b_idx}/{} {}], [{e_idx}/{} {}]", benchmarks.len(), init_bm.name, benchmarks.len(), eval_bm.name));
+            let pbar = ProgressBar::new(num_runs as u64)
+                .with_style(ProgressStyle::default_bar()
+                            .template("[-{eta} +{elapsed} {prefix}] {bar:40.cyan/blue} {pos:>7}/{len:7} ({per_sec}) {msg}")
+                            .progress_chars("=>~"))
+                .with_prefix(format!("[{rep_num}/{num_repetitions}] [{b_idx}/{}] {}", benchmarks.len(), init_bm.name))
+                .with_position(pbar_progress);
+            pbar.reset_eta();
 
-                // 1. Initialise an ET-PSO
-                let mut swarm_et = Swarm::new(
-                    num_particles,
-                    num_dimensions,
-                    &(cp_probs.clone()[0].0),
-                    &eval_bm,
-                    0,
-                    Strategy::EmpiricallyTuned(1.0),
-                );
-                // Evaluate that ET-PSO on every benchmark function
-                swarm_et.evaluate(&eval_bm, 0, false);
-                swarm_et.solve(&eval_bm, num_iterations as i32, Some(cp_probs.clone()), false);
-                swarm_et.log_to(&filename, &eval_bm.name, rep_num, 0.0, 3);
-                pbar.inc(1)
-            }
+            benchmarks
+                .par_iter()
+                .progress_with(pbar)
+                .for_each(move |eval_bm| {
+                    let filename = format!("data/init-{}.csv", init_bm.name);
+                    // 1. Initialise an ET-PSO
+                    let mut swarm_et = Swarm::new(
+                        num_particles,
+                        num_dimensions,
+                        &(cp_probs.clone()[0].0),
+                        &eval_bm,
+                        0,
+                        Strategy::EmpiricallyTuned(1.0),
+                    );
+                    // Evaluate that ET-PSO on every benchmark function
+                    swarm_et.evaluate(&eval_bm, 0, false);
+                    swarm_et.solve(
+                        &eval_bm,
+                        num_iterations as i32,
+                        Some(cp_probs.clone()),
+                        false,
+                    );
+                    swarm_et.log_to(&filename, &eval_bm.name, rep_num, 0.0, 3);
+                });
+            pbar_progress += benchmarks.len() as u64;
+            println!(
+                "{} [rep {}/{}] [benchmark {}/{}] ({})",
+                chrono::offset::Local::now(),
+                rep_num,
+                num_repetitions,
+                b_idx,
+                benchmarks.len(),
+                init_bm.name
+            );
         }
     }
 }
-
 
 /// Evaluate a PSO against w=0.7, c1=c2=1.4
 fn eval_std_pso(
@@ -176,7 +195,11 @@ fn find_optimal_cps(
             pbar.set_style(ProgressStyle::default_bar()
                             .template("[-{eta} +{elapsed} {prefix}] {bar:40.cyan/blue} {pos:>7}/{len:7} ({per_sec}) {msg}")
                             .progress_chars("=>~"));
-            pbar.set_prefix(format!("[{rep_num}/{num_repetitions}] [{b_idx}/{}] {}", benchmarks.len(), benchmark.name));
+            pbar.set_prefix(format!(
+                "[{rep_num}/{num_repetitions}] [{b_idx}/{}] {}",
+                benchmarks.len(),
+                benchmark.name
+            ));
             cps.par_iter().progress_with(pbar).for_each(move |cp| {
                 let mut swarm = Swarm::new(
                     num_particles,
@@ -192,17 +215,19 @@ fn find_optimal_cps(
                 let benchmark_name = bm.name.clone();
                 let fname = fname.clone();
                 thread::spawn(move || {
-                    swarm.log_to(
-                        &fname,
-                        &benchmark_name,
-                        rep_num,
-                        0.0,
-                        0,
-                    );
+                    swarm.log_to(&fname, &benchmark_name, rep_num, 0.0, 0);
                 });
             });
             pbar_progress += cps.len() as u64;
-            println!("{} [rep {}/{}] [benchmark {}/{}] ({})", chrono::offset::Local::now(), rep_num, num_repetitions, b_idx, benchmarks.len(), benchmark.name);
+            println!(
+                "{} [rep {}/{}] [benchmark {}/{}] ({})",
+                chrono::offset::Local::now(),
+                rep_num,
+                num_repetitions,
+                b_idx,
+                benchmarks.len(),
+                benchmark.name
+            );
         }
     }
 }
