@@ -44,7 +44,8 @@ pub fn get_benchmarks() -> Vec<Benchmark> {
         reference: "M. M. Ali, C. Khompatraporn, Z. B. Zabinsky, “A Numerical Evaluation of Several Stochastic Algorithms on Selected Continuous Global Optimization Test Problems,” Journal of Global Optimization, vol. 31, pp. 635-672, 2005.".to_string(),
     };
 
-    let deb_2_function = Benchmark {
+    // TODO this 1. is labelled wrong, and 2. very often results in NaNs
+    let _deb_2_function = Benchmark {
         name: "Deb 3 Function".to_string(),
         func: Box::new(|x: &Vec<f64>| {
             - (1f64 / x.len() as f64) *
@@ -105,7 +106,7 @@ pub fn get_benchmarks() -> Vec<Benchmark> {
         reference: "S. K. Mishra, Global Optimization By Differential Evolution and Particle Swarm Methods: Evaluation On Some Benchmark Functions, Munich Research Papers in Economics, [Available Online]: http://mpra.ub.uni-muenchen.de/1005/".to_string(),
     };
 
-    let generalized_paviani_function = Benchmark {
+    let _generalized_paviani_function = Benchmark {
         name: "Generalized Paviani Function".to_string(),
         func: Box::new(|x: &Vec<f64>| {
             x.iter().map(|xi| {
@@ -117,7 +118,8 @@ pub fn get_benchmarks() -> Vec<Benchmark> {
         reference: "R. I. Jennrich, P. F. Sampson, Application of Stepwise Regression to Non-Linear estimation, Techometrics, vol. 10, no. 1, pp. 63-72, 1968. http://www.jstor.org/discover/10.2307/1266224?uid=3737864&uid=2129&uid=2&uid=70&uid=4&sid=2".to_string(),
     };
 
-    let generalized_price_2_function = Benchmark {
+    // TODO this very often just results in inf or -inf
+    let _generalized_price_2_function = Benchmark {
         name: "Generalized Price 2 Function".to_string(),
         func: Box::new(|x: &Vec<f64>| {
             1.0 + x.iter().map(|xi| xi.sin().powi(2)).sum::<f64>()
@@ -153,7 +155,7 @@ pub fn get_benchmarks() -> Vec<Benchmark> {
         reference: "S. K. Mishra, Global Optimization By Differential Evolution and Particle Swarm Methods: Evaluation On Some Benchmark Functions, Munich Research Papers in Economics, [Available Online]: http://mpra.ub.uni-muenchen.de/1005/".to_string(),
     };
 
-    let mishra_1_function = Benchmark {
+    let _mishra_1_function = Benchmark {
         name: "Mishra 1 Function".to_string(),
         func: Box::new(|x: &Vec<f64>| {
             let n = x.len() as f64;
@@ -302,10 +304,10 @@ pub fn get_benchmarks() -> Vec<Benchmark> {
     };
 
     vec![
-        deb_2_function,
-        generalized_paviani_function,
-        generalized_price_2_function,
-        mishra_1_function,
+        // deb_2_function,
+        // generalized_paviani_function,
+        // generalized_price_2_function,
+        // mishra_1_function,
         // brown_function,
         cosine_mixture_function,
         deb_1_function,

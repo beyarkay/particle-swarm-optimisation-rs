@@ -1,4 +1,5 @@
 use crate::benchmarks::Benchmark;
+use rand::prelude::*;
 use crate::evaluation::Evaluation;
 use crate::ControlParams;
 use crate::PositionRepair;
@@ -12,8 +13,6 @@ use std::cmp::Ordering;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
 use std::io::BufWriter;
-use std::path::Path;
-use std::thread;
 
 #[derive(Debug)]
 pub struct Swarm {
@@ -39,8 +38,6 @@ pub struct Swarm {
     stagnant_iters: Vec<usize>,
     /// The control parameters for each particle.
     cps: Vec<ControlParams>,
-    /// The horizontal distance to the Poli boundary by which control parameters should be selected
-    _distance_to_boundary: f64,
     w: Option<f64>,
     c1: Option<f64>,
     c2: Option<f64>,
@@ -49,21 +46,21 @@ pub struct Swarm {
 
 impl Swarm {
     /// Return a swarm with the given parameters, random starting locations and zero velocity
-    /// vectors
+    /// vectors. The benchmark is just used to ensure the particles are initialised in the correct
+    /// range.
     pub fn new(
         num_particles: usize,
-        num_dims: usize,
+        num_dimensions: usize,
         cp: &ControlParams,
         benchmark: &Benchmark,
         max_stagnent_iters: usize,
-        distance_to_boundary: f64,
         strat: Strategy,
     ) -> Swarm {
         let mut rng = thread_rng();
         let locs: Vec<Vec<f64>> = (0..num_particles)
             .into_iter()
             .map(|_| {
-                (0..num_dims)
+                (0..num_dimensions)
                     .into_iter()
                     .map(|_| rng.gen_range(benchmark.xmin, benchmark.xmax))
                     .collect()
@@ -72,17 +69,22 @@ impl Swarm {
         let vels = (0..num_particles)
             .into_iter()
             .map(|_| {
-                (0..num_dims)
+                (0..num_dimensions)
                     .into_iter()
                     .map(|_| rng.gen_range(-1.0, 1.0))
                     .collect()
             })
             .collect();
+        let cp_probs = ControlParams::generate_from_data("data/last_iter.csv", benchmark);
         let cps: Vec<ControlParams> = match strat {
-            Strategy::EmpiricallyTuned(val) => (0..num_particles)
+            Strategy::EmpiricallyTuned(_val) => (0..num_particles)
                 .into_iter()
-                .map(|_| ControlParams::generate_for_et_pso(val))
-                .collect(),
+                .map(|_|  {
+                    cp_probs
+                        .choose_weighted(&mut rng, |opt| opt.1)
+                        .expect("No options given")
+                        .0
+                }).collect(),
             Strategy::RandomAccelerationCoefficients => (0..num_particles)
                 .into_iter()
                 .map(|_| ControlParams::generate_by_poli())
@@ -97,7 +99,7 @@ impl Swarm {
 
         Swarm {
             num_particles,
-            num_dims,
+            num_dims: num_dimensions,
             locs: locs.clone(),
             vels,
             pbests: locs,
@@ -108,7 +110,6 @@ impl Swarm {
             max_stagnent_iters,
             stagnant_iters: vec![0; num_particles],
             cps,
-            _distance_to_boundary: distance_to_boundary,
             w: Some(cp.w),
             c1: Some(cp.c1),
             c2: Some(cp.c2),
@@ -118,22 +119,30 @@ impl Swarm {
 
     /// Go through and update the ControlParams if stagnant_iters > max_stagnent_iters or
     /// increment stagnant_iters.
-    pub fn resample_cps(&mut self) {
+    pub fn resample_cps(&mut self, cp_probs: &Option<Vec<(ControlParams, f64)>>) {
         if self.max_stagnent_iters != 0 {
+            let mut rng = thread_rng();
             self.stagnant_iters
                 .iter_mut()
                 .zip(self.cps.iter_mut())
                 .map(|(si, cp)| {
                     if *si >= self.max_stagnent_iters {
                         *si = 0;
-                        *cp = ControlParams::generate_by_poli();
+                        *cp = if let Some(cp_probs) = cp_probs {
+                            cp_probs
+                                .choose_weighted(&mut rng, |opt| opt.1)
+                                .expect("No options given")
+                                .0
+                        } else {
+                            ControlParams::generate_by_poli()
+                        }
                     }
                 })
                 .collect()
         }
     }
 
-    pub fn step(&mut self, benchmark: &Benchmark, iteration: usize, verbose: bool) {
+    pub fn step(&mut self, benchmark: &Benchmark, iteration: usize, cp_probs: &Option<Vec<(ControlParams, f64)>>, verbose: bool) {
         // Go through the pbests, and update them if needed
         let prev_pbests = self.pbests.clone();
         self.pbests = self
@@ -184,7 +193,8 @@ impl Swarm {
             })
             .collect();
 
-        self.resample_cps();
+        // TODO solve calls step, but both step and solve call resample_cps()...
+        self.resample_cps(cp_probs);
 
         // let before = mag(&avg(&self.vels));
         // Go through the velocities, and update them
@@ -392,7 +402,7 @@ impl Swarm {
         max_stagnent_iters: usize,
     ) {
         let mut file;
-        let mut file_result = OpenOptions::new()
+        let file_result = OpenOptions::new()
             .create_new(true)
             .write(true)
             .append(true)
@@ -437,7 +447,7 @@ impl Swarm {
         file.flush().expect("Failed to flush the BufWriter");
     }
 
-    pub fn solve(&mut self, benchmark: &Benchmark, num_iterations: i32, verbose: bool) {
+    pub fn solve(&mut self, benchmark: &Benchmark, num_iterations: i32, cp_probs: Option<Vec<(ControlParams, f64)>>, verbose: bool) {
         // let pbar = ProgressBar::new(num_iterations as u64);
         // if !verbose {
         //     pbar.set_style(ProgressStyle::default_bar()
@@ -450,9 +460,10 @@ impl Swarm {
             // if verbose { println!("{}-th Eval: {}", i-1, self.evals.last().expect("evals is empty")); }
             // if !verbose { pbar.inc(1); }
 
-            self.step(benchmark, i as usize, verbose);
+            self.step(benchmark, i as usize, &cp_probs, verbose);
 
-            self.resample_cps();
+            // TODO solve calls step, but both step and solve call resample_cps()...
+            // self.resample_cps();
 
             // if !verbose {
             //     let eval = self.evals.last().expect("evals is empty");
