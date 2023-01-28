@@ -80,24 +80,24 @@ fn train_bm_etpso(
     benchmarks: &Vec<Benchmark>,
 ) {
     let num_runs = num_repetitions * benchmarks.len() * benchmarks.len();
-    let mut pbar_progress = 0;
+    let pbar = ProgressBar::new(num_runs as u64)
+        .with_style(ProgressStyle::default_bar()
+                    .template("[-{eta} +{elapsed} {prefix}] {bar:40.cyan/blue} {pos:>7}/{len:7} ({per_sec}) {msg}")
+                    .progress_chars("=>~"));
     for rep_num in 0..num_repetitions {
         for (b_idx, init_bm) in benchmarks.iter().enumerate() {
+            pbar.set_prefix(format!(
+                "[rep {rep_num}/{num_repetitions}] [benchmark {b_idx}/{}] ({})",
+                benchmarks.len(),
+                init_bm.name
+            ));
             // Get the control parameters for this benchmark
             let cp_probs = ControlParams::generate_from_data("data/last_iter.csv", init_bm);
-            let pbar = ProgressBar::new(num_runs as u64)
-                .with_style(ProgressStyle::default_bar()
-                            .template("[-{eta} +{elapsed} {prefix}] {bar:40.cyan/blue} {pos:>7}/{len:7} ({per_sec}) {msg}")
-                            .progress_chars("=>~"))
-                .with_prefix(format!("[{rep_num}/{num_repetitions}] [{b_idx}/{}] {}", benchmarks.len(), init_bm.name))
-                .with_position(pbar_progress);
-            pbar.reset_eta();
-
             benchmarks
                 .par_iter()
-                .progress_with(pbar)
                 .for_each(move |eval_bm| {
-                    let filename = format!("data/init-{}.csv", init_bm.name);
+                    let eval_name = eval_bm.name.replace(" ", "-").to_lowercase();
+                    let filename = format!("data/eval-{eval_name}.csv");
                     // 1. Initialise an ET-PSO
                     let mut swarm_et = Swarm::new(
                         num_particles,
@@ -117,7 +117,7 @@ fn train_bm_etpso(
                     );
                     swarm_et.log_to(&filename, &eval_bm.name, rep_num, 0.0, 3);
                 });
-            pbar_progress += benchmarks.len() as u64;
+            pbar.inc(benchmarks.len().try_into().unwrap());
             println!(
                 "{} [rep {}/{}] [benchmark {}/{}] ({})",
                 chrono::offset::Local::now(),
