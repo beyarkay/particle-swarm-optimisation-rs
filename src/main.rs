@@ -41,7 +41,7 @@ fn main() {
     }
 
     // Train an ET-PSO on each of the benchmark function's data
-    if true {
+    if false {
         println!("Starting train_bm_etpso");
         benchmarks.shuffle(&mut rng);
         train_bm_etpso(
@@ -53,7 +53,7 @@ fn main() {
         );
     }
 
-    if false {
+    if true {
         println!("Starting eval_std_pso");
         benchmarks.shuffle(&mut rng);
         eval_std_pso(
@@ -71,7 +71,8 @@ fn main() {
     // }
 }
 
-/// TODO
+/// Initialise ET-PSO on each benchmark function, and then evaluate that ET-PSO on every benchmark
+/// function. This will assess how well ET-PSO generalizes to unseen benchmarks.
 fn train_bm_etpso(
     num_particles: usize,
     num_dimensions: usize,
@@ -97,7 +98,8 @@ fn train_bm_etpso(
                 .par_iter()
                 .for_each(move |eval_bm| {
                     let eval_name = eval_bm.name.replace(" ", "-").to_lowercase();
-                    let filename = format!("data/eval-{eval_name}.csv");
+                    let init_name = init_bm.name.replace(" ", "-").to_lowercase();
+                    let filename = format!("data/et-pso/init-{init_name}-eval-{eval_name}.csv");
                     // 1. Initialise an ET-PSO
                     let mut swarm_et = Swarm::new(
                         num_particles,
@@ -131,36 +133,51 @@ fn train_bm_etpso(
     }
 }
 
-/// Evaluate a PSO against w=0.7, c1=c2=1.4
 fn eval_std_pso(
-    _num_particles: usize,
-    _num_dimensions: usize,
+    num_particles: usize,
+    num_dimensions: usize,
     num_repetitions: usize,
-    _num_iterations: usize,
+    num_iterations: usize,
     benchmarks: &Vec<Benchmark>,
 ) {
-    let mut _run_idx = 1;
-    let _num_runs = benchmarks.len() * num_repetitions;
-    let _cp = ControlParams::new(0.7, 1.4, 1.4);
-    let now = Utc::now();
-    let _filename = format!(
-        "data/raw/std_pso_{}-{:02}-{:02}.csv",
-        now.year(),
-        now.month(),
-        now.day()
-    );
-
-    // for benchmark in benchmarks {
-    //     print_details(run_idx, num_runs, 0, 0.0, &benchmark.name, &cp);
-    //     for rep_num in 0..num_repetitions {
-    //         let mut swarm = Swarm::new(num_particles, num_dimensions, &cp, &benchmark, 0.0);
-    //         swarm.evaluate(&benchmark, 0, false);
-    //         swarm.solve(&benchmark, num_iterations as i32, false);
-    //         swarm.log_to(&filename, &benchmark, rep_num, 0.0, 0);
-    //         run_idx += 1;
-    //     }
-    // }
+    let num_runs = num_repetitions * benchmarks.len();
+    let pbar = ProgressBar::new(num_runs as u64)
+        .with_style(ProgressStyle::default_bar()
+                    .template("[-{eta} +{elapsed} {prefix}] {bar:40.cyan/blue} {pos:>7}/{len:7} ({per_sec}) {msg}")
+                    .progress_chars("=>~"));
+    let cp = ControlParams::new(1.4, 0.7, 0.7);
+    for rep_num in 0..num_repetitions {
+        pbar.set_prefix(format!( "[rep {rep_num}/{num_repetitions}]"));
+        // Get the control parameters for this benchmark
+        benchmarks
+            .par_iter()
+            .for_each(move |eval_bm| {
+                let eval_name = eval_bm.name.replace(" ", "-").to_lowercase();
+                let filename = format!("data/std-pso/eval-{eval_name}.csv");
+                // 1. Initialise a std pso
+                let mut swarm_et = Swarm::new(
+                    num_particles,
+                    num_dimensions,
+                    &(cp.clone()),
+                    &eval_bm,
+                    0,
+                    Strategy::None,
+                );
+                // Evaluate that ET-PSO on every benchmark function
+                swarm_et.evaluate(&eval_bm, 0, false);
+                swarm_et.solve(
+                    &eval_bm,
+                    num_iterations as i32,
+                    None,
+                    false,
+                );
+                swarm_et.log_to(&filename, &eval_bm.name, rep_num, 0.0, 0);
+            });
+        pbar.inc(benchmarks.len().try_into().unwrap());
+        println!( "{} [rep {}/{}]", chrono::offset::Local::now(), rep_num, num_repetitions);
+    }
 }
+
 
 /// Go through every benchmark and then grid-search for the best control parameters
 fn find_optimal_cps(
