@@ -13,19 +13,7 @@ To run the code you must have the rust compiler installed.
 With the rust compiler installed, execute the below line:
 
 ```sh
-cargo run
+cargo run --release
 ```
 
-And everything will be run. Alternatively, `make` or `make run` will also work
-
-## Benchmark Functions
-
-- Rastrigrin?
-- Rosenbrock?
-- Ackley?
-- Quadric
-- Saleman (?)
-
-## Yet to implement
-
-- A Metrics agent
+And everything will be run. Alternatively, `make release` will also work.

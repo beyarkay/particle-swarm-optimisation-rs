@@ -375,7 +375,7 @@ impl Swarm {
         self.evals.push(Evaluation {
             iteration,
             gbest_fit: (benchmark.func)(&self.gbest_loc.as_ref().unwrap()),
-            curr_gbest_fit: None, //if global_best_loc.is_some() { Some((benchmark.func)(&global_best_loc.unwrap().clone())) } else { None },
+            curr_gbest_fit: None, // if self.gbest_loc.is_some() { Some((benchmark.func)(&(self.gbest_loc.clone().unwrap()))) } else { None },
             gdiversity,
             _vel_mags: vec![], //vel_mags,
             _loc_mags: vec![], //loc_mags,

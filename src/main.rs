@@ -14,6 +14,8 @@ use indicatif::ParallelProgressIterator;
 use indicatif::{ProgressBar, ProgressStyle};
 use rand::{prelude::SliceRandom, thread_rng};
 use rayon::prelude::*;
+use std::fs::OpenOptions;
+use std::io::{prelude::*, BufWriter};
 use std::thread;
 
 fn main() {
@@ -53,7 +55,7 @@ fn main() {
         );
     }
 
-    if true {
+    if false {
         println!("Starting eval_std_pso");
         benchmarks.shuffle(&mut rng);
         eval_std_pso(
@@ -64,11 +66,30 @@ fn main() {
             &benchmarks,
         );
     }
-    // if false {
-    //     println!("Starting random_poli_sampling");
-    //     benchmarks.shuffle(&mut rng);
-    //     _random_poli_sampling( num_particles, num_dimensions, num_repetitions, num_iterations, &benchmarks,);
-    // }
+
+    if false {
+        println!("Starting eval_rac_pso");
+        benchmarks.shuffle(&mut rng);
+        eval_rac_pso(
+            num_particles,
+            num_dimensions,
+            num_repetitions,
+            num_iterations,
+            &benchmarks,
+        );
+    }
+
+    if true {
+        println!("Starting save_bm_values");
+        benchmarks.shuffle(&mut rng);
+        save_bm_values(
+            num_particles,
+            num_dimensions,
+            num_repetitions,
+            num_iterations,
+            &benchmarks,
+        );
+    }
 }
 
 /// Initialise ET-PSO on each benchmark function, and then evaluate that ET-PSO on every benchmark
@@ -94,31 +115,29 @@ fn train_bm_etpso(
             ));
             // Get the control parameters for this benchmark
             let cp_probs = ControlParams::generate_from_data("data/last_iter.csv", init_bm);
-            benchmarks
-                .par_iter()
-                .for_each(move |eval_bm| {
-                    let eval_name = eval_bm.name.replace(" ", "-").to_lowercase();
-                    let init_name = init_bm.name.replace(" ", "-").to_lowercase();
-                    let filename = format!("data/et-pso/init-{init_name}-eval-{eval_name}.csv");
-                    // 1. Initialise an ET-PSO
-                    let mut swarm_et = Swarm::new(
-                        num_particles,
-                        num_dimensions,
-                        &(cp_probs.clone()[0].0),
-                        &eval_bm,
-                        0,
-                        Strategy::EmpiricallyTuned(1.0),
-                    );
-                    // Evaluate that ET-PSO on every benchmark function
-                    swarm_et.evaluate(&eval_bm, 0, false);
-                    swarm_et.solve(
-                        &eval_bm,
-                        num_iterations as i32,
-                        Some(cp_probs.clone()),
-                        false,
-                    );
-                    swarm_et.log_to(&filename, &eval_bm.name, rep_num, 0.0, 3);
-                });
+            benchmarks.par_iter().for_each(move |eval_bm| {
+                let eval_name = eval_bm.name.replace(" ", "-").to_lowercase();
+                let init_name = init_bm.name.replace(" ", "-").to_lowercase();
+                let filename = format!("data/et-pso/init-{init_name}-eval-{eval_name}.csv");
+                // 1. Initialise an ET-PSO
+                let mut swarm_et = Swarm::new(
+                    num_particles,
+                    num_dimensions,
+                    &(cp_probs.clone()[0].0),
+                    &eval_bm,
+                    0,
+                    Strategy::EmpiricallyTuned(1.0),
+                );
+                // Evaluate that ET-PSO on every benchmark function
+                swarm_et.evaluate(&eval_bm, 0, false);
+                swarm_et.solve(
+                    &eval_bm,
+                    num_iterations as i32,
+                    Some(cp_probs.clone()),
+                    false,
+                );
+                swarm_et.log_to(&filename, &eval_bm.name, rep_num, 0.0, 3);
+            });
             pbar.inc(benchmarks.len().try_into().unwrap());
             println!(
                 "{} [rep {}/{}] [benchmark {}/{}] ({})",
@@ -147,37 +166,77 @@ fn eval_std_pso(
                     .progress_chars("=>~"));
     let cp = ControlParams::new(1.4, 0.7, 0.7);
     for rep_num in 0..num_repetitions {
-        pbar.set_prefix(format!( "[rep {rep_num}/{num_repetitions}]"));
+        pbar.set_prefix(format!("[rep {rep_num}/{num_repetitions}]"));
         // Get the control parameters for this benchmark
-        benchmarks
-            .par_iter()
-            .for_each(move |eval_bm| {
-                let eval_name = eval_bm.name.replace(" ", "-").to_lowercase();
-                let filename = format!("data/std-pso/eval-{eval_name}.csv");
-                // 1. Initialise a std pso
-                let mut swarm_et = Swarm::new(
-                    num_particles,
-                    num_dimensions,
-                    &(cp.clone()),
-                    &eval_bm,
-                    0,
-                    Strategy::None,
-                );
-                // Evaluate that ET-PSO on every benchmark function
-                swarm_et.evaluate(&eval_bm, 0, false);
-                swarm_et.solve(
-                    &eval_bm,
-                    num_iterations as i32,
-                    None,
-                    false,
-                );
-                swarm_et.log_to(&filename, &eval_bm.name, rep_num, 0.0, 0);
-            });
+        benchmarks.par_iter().for_each(move |eval_bm| {
+            let eval_name = eval_bm.name.replace(" ", "-").to_lowercase();
+            let filename = format!("data/std-pso/eval-{eval_name}.csv");
+            // 1. Initialise a std pso
+            let mut swarm_et = Swarm::new(
+                num_particles,
+                num_dimensions,
+                &(cp.clone()),
+                &eval_bm,
+                0,
+                Strategy::None,
+            );
+            // Evaluate that ET-PSO on every benchmark function
+            swarm_et.evaluate(&eval_bm, 0, false);
+            swarm_et.solve(&eval_bm, num_iterations as i32, None, false);
+            swarm_et.log_to(&filename, &eval_bm.name, rep_num, 0.0, 0);
+        });
         pbar.inc(benchmarks.len().try_into().unwrap());
-        println!( "{} [rep {}/{}]", chrono::offset::Local::now(), rep_num, num_repetitions);
+        println!(
+            "{} [rep {}/{}]",
+            chrono::offset::Local::now(),
+            rep_num,
+            num_repetitions
+        );
     }
 }
 
+fn eval_rac_pso(
+    num_particles: usize,
+    num_dimensions: usize,
+    num_repetitions: usize,
+    num_iterations: usize,
+    benchmarks: &Vec<Benchmark>,
+) {
+    let num_runs = num_repetitions * benchmarks.len();
+    let pbar = ProgressBar::new(num_runs as u64)
+        .with_style(ProgressStyle::default_bar()
+                    .template("[-{eta} +{elapsed} {prefix}] {bar:40.cyan/blue} {pos:>7}/{len:7} ({per_sec}) {msg}")
+                    .progress_chars("=>~"));
+    let cp = ControlParams::new(1.4, 0.7, 0.7);
+    for rep_num in 0..num_repetitions {
+        pbar.set_prefix(format!("[rep {rep_num}/{num_repetitions}]"));
+        // Get the control parameters for this benchmark
+        benchmarks.par_iter().for_each(move |eval_bm| {
+            let eval_name = eval_bm.name.replace(" ", "-").to_lowercase();
+            let filename = format!("data/rac-pso/eval-{eval_name}.csv");
+            // 1. Initialise a std pso
+            let mut swarm_et = Swarm::new(
+                num_particles,
+                num_dimensions,
+                &(cp.clone()),
+                &eval_bm,
+                1,
+                Strategy::RandomAccelerationCoefficients,
+            );
+            // Evaluate that ET-PSO on every benchmark function
+            swarm_et.evaluate(&eval_bm, 0, false);
+            swarm_et.solve(&eval_bm, num_iterations as i32, None, false);
+            swarm_et.log_to(&filename, &eval_bm.name, rep_num, 0.0, 1);
+        });
+        pbar.inc(benchmarks.len().try_into().unwrap());
+        println!(
+            "{} [rep {}/{}]",
+            chrono::offset::Local::now(),
+            rep_num,
+            num_repetitions
+        );
+    }
+}
 
 /// Go through every benchmark and then grid-search for the best control parameters
 fn find_optimal_cps(
@@ -249,6 +308,60 @@ fn find_optimal_cps(
     }
 }
 
+/// Go through every benchmark and then grid-search for the best control parameters
+fn save_bm_values(
+    _num_particles: usize,
+    _num_dimensions: usize,
+    _num_repetitions: usize,
+    _num_iterations: usize,
+    benchmarks: &Vec<Benchmark>,
+) {
+    let mut rng = thread_rng();
+    let mut cps = ControlParams::generate_multiple_in_grid();
+    cps.shuffle(&mut rng);
+    let now = Utc::now();
+    let num_points = 500;
+
+    let pbar = ProgressBar::new(benchmarks.len().try_into().unwrap())
+        .with_style(ProgressStyle::default_bar()
+                    .template("[-{eta} +{elapsed} {prefix}] {bar:40.cyan/blue} {pos:>7}/{len:7} ({per_sec}) {msg}")
+                    .progress_chars("=>~"));
+    benchmarks
+        .par_iter()
+        .progress_with(pbar)
+        .for_each(|benchmark| {
+            let filename = format!(
+                "data/bm_values/{}_{}-{:02}-{:02}.csv",
+                benchmark.name,
+                now.year(),
+                now.month(),
+                now.day()
+            );
+            println!("Starting {}", filename);
+            let range = benchmark.xmax - benchmark.xmin;
+            for xi in 0..num_points {
+                for yi in 0..num_points {
+                    let v = vec![
+                        xi as f64 / num_points as f64 * range + benchmark.xmin,
+                        yi as f64 / num_points as f64 * range + benchmark.xmin,
+                    ];
+                    let bound_check = benchmark.is_in_bounds(&v);
+                    let r = if bound_check[0] && bound_check[1] {
+                        (benchmark.func)(&v)
+                    } else {
+                        f64::NAN
+                    };
+                    log_to(
+                        &filename,
+                        "benchmark,x,y,value",
+                        &format!("{},{},{},{}", benchmark.name, v[0], v[1], r),
+                    )
+                }
+            }
+            println!("Finished {}", filename);
+        });
+}
+
 #[derive(Debug)]
 pub enum Strategy {
     EmpiricallyTuned(f64),
@@ -302,6 +415,28 @@ fn _random_poli_sampling(
     //         }
     //     }
     // }
+}
+
+fn log_to(path: &str, header: &str, line: &str) {
+    let mut file;
+    let file_result = OpenOptions::new()
+        .create_new(true)
+        .write(true)
+        .append(true)
+        .open(path);
+    if let Ok(f) = file_result {
+        file = f;
+        writeln!(file, "{}", header).expect("Write to file failed");
+    } else {
+        file = OpenOptions::new()
+            .append(true)
+            .open(path)
+            .expect("Couldn't open file for appending");
+    }
+
+    let mut file = BufWriter::new(file);
+    writeln!(file, "{}", line).expect("Failed to write to file");
+    file.flush().expect("Failed to flush the BufWriter");
 }
 
 struct _Particle {
